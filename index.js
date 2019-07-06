@@ -6,7 +6,7 @@ const config = {
     host: 'http://192.168.8.193',
     apiDirectory: '/solar_api/v1/',
     fileNameFormat: 'Y_MM_DD',//Moment library is used https://momentjs.com
-    basePath: './',
+    basePath: './data/',
 };
 
 const API_CALLS = {
@@ -22,19 +22,19 @@ const getData = async url => {
             DataCollection: 'CumulationInverterData'
         }
     });
-    const {data} = response;
-    console.log(data);
-    console.log(data.Body.Data.PAC);
-
-    return data.Body.Data.PAC
+    return response.data.Body.Data.PAC
   } catch (error) {
     console.log(error);
   }
 };
 
 const read = filePath => {
-    const data = fs.readFileSync(filePath, 'utf8')
-    return data ? JSON.parse(data) : [];
+    try {
+        const data = fs.readFileSync(filePath, 'utf8')
+        return JSON.parse(data)
+    } catch(err) {
+        return []
+    }
 };
 
 const write = (filePath, data) => {
@@ -49,7 +49,11 @@ const getFileName = () => config.basePath + moment().format(config.fileNameForma
 const log = async () => {
     const {host, apiDirectory} = config
 
-    const newLog = await getData(host + apiDirectory + API_CALLS.GET_REALTIME_DATA);
+    const logData = await getData(host + apiDirectory + API_CALLS.GET_REALTIME_DATA);
+    const newLog = {
+        ...logData,
+        timestamp: new Date(),
+    }
     
     console.log("newLog", newLog)
     
