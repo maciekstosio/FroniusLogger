@@ -19,7 +19,7 @@ const write = (filePath, data) => {
 };
 
 const log = async () => {
-    const readFile = read(config.logPath + process.argv[2] + '.log')
+    const readFile = read(config.logPath + process.argv[2] + '.json')
     
     const newData = {
         total: 0,
@@ -29,7 +29,7 @@ const log = async () => {
         })),
     }
     
-    write(config.logPath + process.argv[2] + '.log', newData)
+    write(config.logPath + process.argv[2] + '.json', newData)
 }
 
 try {
