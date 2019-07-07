@@ -1,12 +1,11 @@
 const axios = require("axios");
 const fs = require('fs');
 const moment = require('moment');
+const config = require('./config');
 
-const config = {
-    host: 'http://192.168.8.193',
-    apiDirectory: '/solar_api/v1/',
-    fileNameFormat: 'Y_MM_DD',//Moment library is used https://momentjs.com
-    basePath: './data/',
+const emptyObject = {
+    total: 0,
+    logs: [],
 };
 
 const API_CALLS = {
@@ -22,7 +21,8 @@ const getData = async url => {
             DataCollection: 'CumulationInverterData'
         }
     });
-    return response.data.Body.Data.PAC
+
+    return response.data.Body.Data
   } catch (error) {
     console.log(error);
   }
@@ -33,7 +33,7 @@ const read = filePath => {
         const data = fs.readFileSync(filePath, 'utf8')
         return JSON.parse(data)
     } catch(err) {
-        return []
+        return emptyObject
     }
 };
 
@@ -44,29 +44,35 @@ const write = (filePath, data) => {
       });
 };
 
-const getFileName = () => config.basePath + moment().format(config.fileNameFormat) + '.log'
+const getFileName = () => config.logPath + moment().format(config.fileNameFormat) + '.json'
 
 const log = async () => {
     const {host, apiDirectory} = config
 
     const logData = await getData(host + apiDirectory + API_CALLS.GET_REALTIME_DATA);
     const newLog = {
-        ...logData,
+        value: logData.PAC.Value || 0,
         timestamp: new Date(),
-    }
-    
-    console.log("newLog", newLog)
+    };    
     
     const readFile = read(getFileName())
-    
-    console.log("readFile", readFile)
-    
-    const newData = [...readFile, newLog]
-    
-    console.log("newData", newData)
-    
-    write(getFileName(), newData)
+    const newLogData = {
+        total: logData.DAY_ENERGY.Value || 0,
+        logs: [...readFile.logs, newLog]
+    };
+
+    const allFilesInLogsDirectory = fs.readdirSync(config.logPath)
+    const allFilesInLogsDirectoryWithoutIndex = allFilesInLogsDirectory.filter(fileName => fileName !== config.indexFileName)
+
+    const newIndexData = {
+        total: logData.TOTAL_ENERGY.Value || 0,
+        logFiles: allFilesInLogsDirectoryWithoutIndex,
+    };
+
+    write(getFileName(), newLogData)
+    write(config.logPath + config.indexFileName, newIndexData)
 }
+
 try {
     log()
 } catch(err) {
